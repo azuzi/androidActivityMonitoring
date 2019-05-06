@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             dataZ.add(currentValueZ);
         }
 
-
+        //smth
         if (dataY.size() == 10 && dataZ.size() == 10) {
             activity.setText("Y "+dataY.size()+ " "+"Z " +dataZ.size());
             Toast.makeText(getBaseContext(), "Calculating", Toast.LENGTH_LONG).show();
