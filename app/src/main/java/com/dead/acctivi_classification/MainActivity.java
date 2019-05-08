@@ -105,16 +105,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        //int sensorType = event.sensor.getType();
 
         float currentValueY = event.values[1];
         float currentValueZ = event.values[2];
-
         if (dataY.size() < 11) {
             dataY.add(currentValueY);
         }
         if (dataZ.size() < 11) {
-
             dataZ.add(currentValueZ);
         }
 
@@ -122,8 +119,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (dataY.size() == 10 && dataZ.size() == 10) {
             activity.setText("Y "+dataY.size()+ " "+"Z " +dataZ.size());
             Toast.makeText(getBaseContext(), "Calculating", Toast.LENGTH_LONG).show();
-
-            //mSensorManager.unregisterListener(this);
 
             float avgY = calculations.findAverage(dataY);
             float varY = calculations.findVariance(dataY, avgY);
@@ -138,18 +133,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             dataZ.clear();
             dataY.clear();
             try {
-                //set time in mili
                 Toast.makeText(getBaseContext(), "Sleeping....", Toast.LENGTH_LONG).show();
                 sleep(3000);
-
-                //
 
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(getBaseContext(), e.toString(), Toast.LENGTH_LONG).show();
             }
 
-            //start();
 
         }
 
