@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         classifier = new Classifier();
         populateList();
-        runClassifier();
+        //runClassifier();
         classifier.addTrainData();
 
 
@@ -106,47 +106,49 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        float currentValueY = event.values[1];
-        float currentValueZ = event.values[2];
-        if (dataY.size() < 11) {
-            dataY.add(currentValueY);
-        }
-        if (dataZ.size() < 11) {
-            dataZ.add(currentValueZ);
-        }
+        int sensorType = event.sensor.getType();
+        if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
 
-        //smth
-        if (dataY.size() == 10 && dataZ.size() == 10) {
-            activity.setText("Y "+dataY.size()+ " "+"Z " +dataZ.size());
-            Toast.makeText(getBaseContext(), "Calculating", Toast.LENGTH_LONG).show();
-
-            float avgY = calculations.findAverage(dataY);
-            float varY = calculations.findVariance(dataY, avgY);
-            float sdY = calculations.findStandardDeviation(varY);
-            float avgZ = calculations.findAverage(dataZ);
-            float varZ = calculations.findVariance(dataY, avgZ);
-            float sdZ = calculations.findStandardDeviation(varZ);
-
-            Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
-            activity.setText(category.toString());
-
-            dataZ.clear();
-            dataY.clear();
-            try {
-                Toast.makeText(getBaseContext(), "Sleeping....", Toast.LENGTH_LONG).show();
-                sleep(3000);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(getBaseContext(), e.toString(), Toast.LENGTH_LONG).show();
+            if (dataY.size() < 11) {
+                dataY.add(event.values[1]);
+            }
+            if (dataZ.size() < 11) {
+                dataZ.add(event.values[2]);
             }
 
+            //smth
+            if (dataY.size() == 10 && dataZ.size() == 10) {
+                activity.setText("Y " + dataY.size() + " " + "Z " + dataZ.size());
+                Toast.makeText(getBaseContext(), "Calculating", Toast.LENGTH_LONG).show();
+
+                float avgY = calculations.findAverage(dataY);
+                float varY = calculations.findVariance(dataY, avgY);
+                float sdY = calculations.findStandardDeviation(varY);
+                float avgZ = calculations.findAverage(dataZ);
+                float varZ = calculations.findVariance(dataY, avgZ);
+                float sdZ = calculations.findStandardDeviation(varZ);
+                dataZ.clear();
+                dataY.clear();
+
+                Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+                activity.setText(category.toString());
+
+
+                try {
+                    Toast.makeText(getBaseContext(), "Sleeping....", Toast.LENGTH_LONG).show();
+                    sleep(3000);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(getBaseContext(), e.toString(), Toast.LENGTH_LONG).show();
+                }
+
+
+            }
+
+            //activity.setText("Please  Wait......");
 
         }
-
-        //activity.setText("Please  Wait......");
-
-
     }
     //\Users\ZIZOU\AndroidStudioProjects\Acctivi_Classification\app\build\intermediates\split-apk\debug\slices\slice_1.apk.
 
