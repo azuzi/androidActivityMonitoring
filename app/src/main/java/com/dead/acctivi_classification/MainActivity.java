@@ -5,8 +5,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -20,25 +23,40 @@ import com.dead.acctivi_classification.distanceAlgorithm.EuclideanDistance;
 import java.io.BufferedReader;
 
 import java.io.InputStreamReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
+    private static final String TAG = "MainActivity";
+
+
+    private HandlerThread handlerThread = new HandlerThread("thread");
+    private Handler threadHandler;
 
     private final int REQUEST_CODE = 101;
+    private static int BUF_SIZE = 48;
+    private final ReentrantLock bufferLock = new ReentrantLock();
+
+    RunTimeCalculations calculations = new RunTimeCalculations();
+    private ArrayList<Float> dataY = new ArrayList<Float>();
+    private ArrayList<Float> dataZ = new ArrayList<Float>();
 
     private DistanceAlgorithm[] distanceAlgorithms = {new EuclideanDistance()};
     private Classifier classifier;
     private List<DataPoint> listDataPoint = new ArrayList<>();
     private List<DataPoint> listDataPointOriginal = new ArrayList<>();
-    RunTimeCalculations calculations = new RunTimeCalculations();
 
 
-    private TextView activity;
+
+    TextView activity;
     private SensorManager mSensorManager;
     private Sensor mSensorAccelero;
+
+    float avgY,avgZ, varY,varZ,sdY,sdZ;
 
 
     // TextViews to display current sensor values
@@ -46,8 +64,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private int K;
     private double spRatio;
-    private ArrayList<Float> dataY = new ArrayList<Float>();
-    private ArrayList<Float> dataZ = new ArrayList<Float>();
+
 
     //float avgX, avgY, avgZ, varX, varY, varZ, sdX, sdY, sdZ;
 
@@ -63,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         activity = (TextView) findViewById(R.id.textViewZ);
 
         //mSensorGyro = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
         K = 11;
         spRatio = 0.8;
@@ -79,16 +96,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //runClassifier();
         classifier.addTrainData();
 
+        handlerThread.start();
+        threadHandler = new Handler(handlerThread.getLooper());
+
 
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 start();
-                //Toast.makeText(getBaseContext(), "Data Recording Started", Toast.LENGTH_LONG).show();
-                //classifier.classify();
-                //activity.setText("Accuracy = " + classifier.getAccuracy());
-                //getDelay(300);
-                // here we have to give the calculated run time values
+
 
             }
         });
@@ -99,7 +115,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 stop();
             }
         });
-
+        if (dataY.size() == 11 && dataZ.size() == 11) {
+            threadHandler.post(new YRunnable());
+            //threadHandler.post(new ZRunnable());
+            threadHandler.post(new Predict());
+            //Log.d(TAG, String.valueOf(dataY.size()));
+        }
 
     }
 
@@ -107,54 +128,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onSensorChanged(SensorEvent event) {
 
         int sensorType = event.sensor.getType();
+
         if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
-
-            if (dataY.size() < 11) {
-                dataY.add(event.values[1]);
-            }
-            if (dataZ.size() < 11) {
-                dataZ.add(event.values[2]);
-            }
-
-            //smth
-            if (dataY.size() == 10 && dataZ.size() == 10) {
-                activity.setText("Y " + dataY.size() + " " + "Z " + dataZ.size());
-                Toast.makeText(getBaseContext(), "Calculating", Toast.LENGTH_LONG).show();
-
-                float avgY = calculations.findAverage(dataY);
-                float varY = calculations.findVariance(dataY, avgY);
-                float sdY = calculations.findStandardDeviation(varY);
-                float avgZ = calculations.findAverage(dataZ);
-                float varZ = calculations.findVariance(dataY, avgZ);
-                float sdZ = calculations.findStandardDeviation(varZ);
-                dataZ.clear();
-                dataY.clear();
-
-                Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
-                activity.setText(category.toString());
-
-
-                try {
-                    Toast.makeText(getBaseContext(), "Sleeping....", Toast.LENGTH_LONG).show();
-                    sleep(3000);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(getBaseContext(), e.toString(), Toast.LENGTH_LONG).show();
+            bufferLock.lock();
+            try {
+                if (dataY.size() > 10) {
+                    Log.d(TAG, String.valueOf(dataY));
+                    dataY.remove(0);
                 }
-
-
+                dataY.add(event.values[1]);
+                if (dataZ.size() <= 10) {
+                    dataY.remove(0);
+                }
+                dataZ.add(event.values[2]);
+            }finally {
+                bufferLock.unlock();
             }
-
-            //activity.setText("Please  Wait......");
 
         }
     }
-    //\Users\ZIZOU\AndroidStudioProjects\Acctivi_Classification\app\build\intermediates\split-apk\debug\slices\slice_1.apk.
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        handlerThread.quit();
     }
 
     private void populateList() {
@@ -205,4 +207,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this);
         Toast.makeText(getBaseContext(), "Data Recording Stopped", Toast.LENGTH_LONG).show();
     }
+
+    private class YRunnable implements Runnable{
+        @Override
+        public void run() {
+            bufferLock.lock();
+            try {
+                avgY = calculations.findAverage(dataY);
+                varY = calculations.findVariance(dataY, avgY);
+                sdY = calculations.findStandardDeviation(varY);
+                avgZ = calculations.findAverage(dataZ);
+                varZ = calculations.findVariance(dataY, avgZ);
+                sdZ = calculations.findStandardDeviation(varZ);
+
+            }finally {
+                bufferLock.unlock();
+            }
+        }
+    }
+
+    private class Predict implements Runnable{
+        @Override
+        public void run() {
+            Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+            activity.setText(category.toString());
+        }
+    }
+
+
 }
