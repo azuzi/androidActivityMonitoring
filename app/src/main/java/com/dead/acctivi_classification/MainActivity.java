@@ -133,7 +133,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bufferLock.lock();
             try {
                 if (dataY.size() > 10) {
-                    Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
                 }
                 dataY.add(event.values[1]);
@@ -230,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         public void run() {
             Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+            Log.d(TAG, String.valueOf(category));
             activity.setText(category.toString());
         }
     }
