@@ -32,10 +32,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final String TAG = "MainActivity";
 
 
-    private HandlerThread handlerThread = new HandlerThread("thread");
-    private Handler threadHandler;
+//    private HandlerThread handlerThread = new HandlerThread("thread");
+//    private Handler threadHandler;
 
-    private final ReentrantLock bufferLock = new ReentrantLock();
+//    private final ReentrantLock bufferLock = new ReentrantLock();
 
     RunTimeCalculations calculations = new RunTimeCalculations();
     private ArrayList<Float> dataY = new ArrayList<Float>();
@@ -66,14 +66,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
         btStart = (Button) findViewById(R.id.btStart);
         btStop = (Button) findViewById(R.id.btStop);
         activity = (TextView) findViewById(R.id.textViewZ);
 
-        //mSensorGyro = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         K = 11;
         spRatio = 0.8;
@@ -93,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //start();
+                start();
             }
         });
 
@@ -104,9 +103,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
-        handlerThread.start();
-        threadHandler = new Handler(handlerThread.getLooper());
-        threadHandler.postDelayed(new YRunnable(), 2000);
+//        handlerThread.start();
+//        threadHandler = new Handler(handlerThread.getLooper());
+//        threadHandler.postDelayed(new YRunnable(), 2000);
 
     }
 
@@ -115,8 +114,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         int sensorType = event.sensor.getType();
 
-        if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
-            bufferLock.lock();
+        if (sensorType == Sensor.TYPE_ACCELEROMETER) {
+//            bufferLock.lock();
             try {
                 if (dataY.size() > 30) {
                     //Log.d(TAG, String.valueOf(dataY));
@@ -130,9 +129,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
                 dataZ.add(event.values[2]);
             }finally {
-                bufferLock.unlock();
+//                bufferLock.unlock();
             }
-
+            processsData();
         }
     }
 
@@ -144,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy(){
         super.onDestroy();
-        handlerThread.quit();
+//        handlerThread.quit();
     }
 
     private void populateList() {
@@ -193,40 +192,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public void start() {
+        Log.d(TAG, "olga::start");
+        super.onStart();
         if (mSensorAccelero != null) {
             mSensorManager.registerListener(this, mSensorAccelero, SensorManager.SENSOR_DELAY_NORMAL);
         }
-
+        Toast.makeText(getBaseContext(), "Data Recording Started", Toast.LENGTH_LONG).show();
     }
 
     public void stop() {
+        Log.d(TAG, "olga::stop");
+        super.onStop();
         mSensorManager.unregisterListener(this);
         Toast.makeText(getBaseContext(), "Data Recording Stopped", Toast.LENGTH_LONG).show();
     }
 
-    private class YRunnable implements Runnable{
-        @Override
-        public void run() {
-            avgY = calculations.findAverage(dataY);
-            avgZ = calculations.findAverage(dataZ);
-            varY = calculations.findVariance(dataY, avgY);
-            sdY = calculations.findStandardDeviation(varY);
-            varZ = calculations.findVariance(dataY, avgZ);
-            sdZ = calculations.findStandardDeviation(varZ);
+    public void processsData () {
+        Log.d(TAG, "olga::processing data");
+        avgY = calculations.findAverage(dataY);
+        avgZ = calculations.findAverage(dataZ);
+        varY = calculations.findVariance(dataY, avgY);
+        sdY = calculations.findStandardDeviation(varY);
+        varZ = calculations.findVariance(dataY, avgZ);
+        sdZ = calculations.findStandardDeviation(varZ);
 
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
-                    String cat = category.toString();
-                    activity.setText(cat);
-                }
-            });
-
-
-        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+                String cat = category.toString();
+                activity.setText(cat);
+            }
+        });
     }
-
-
 
 }
