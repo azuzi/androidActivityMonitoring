@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         spRatio = 0.8;
 
         String sensor_error = getResources().getString(R.string.error_no_sensor);
+        start();
 
         if (mSensorAccelero == null) {
             activity.setText(sensor_error);
@@ -96,15 +97,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //runClassifier();
         classifier.addTrainData();
 
-        handlerThread.start();
-        threadHandler = new Handler(handlerThread.getLooper());
+
 
 
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                start();
-
+                //start();
 
             }
         });
@@ -115,13 +114,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 stop();
             }
         });
-        if (dataY.size() == 11 && dataZ.size() == 11) {
-            threadHandler.post(new YRunnable());
-            //threadHandler.post(new ZRunnable());
-            threadHandler.post(new Predict());
-            //Log.d(TAG, String.valueOf(dataY.size()));
-        }
 
+        handlerThread.start();
+        threadHandler = new Handler(handlerThread.getLooper());
+        threadHandler.postDelayed(new YRunnable(), 2000);
+
+
+        //Log.d(TAG, String.valueOf(dataY.size()));
     }
 
     @Override
@@ -133,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bufferLock.lock();
             try {
                 if (dataY.size() > 10) {
+                    Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
                 }
                 dataY.add(event.values[1]);
@@ -210,6 +210,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private class YRunnable implements Runnable{
         @Override
         public void run() {
+
             bufferLock.lock();
             try {
                 avgY = calculations.findAverage(dataY);
@@ -219,20 +220,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 varZ = calculations.findVariance(dataY, avgZ);
                 sdZ = calculations.findStandardDeviation(varZ);
 
-            }finally {
+            } finally {
                 bufferLock.unlock();
             }
+            //threadHandler.post(new Predict()); threadHandler.post(new YRunnable());
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+                    activity.setText(category.toString());
+                }
+            });
+
+
         }
     }
 
-    private class Predict implements Runnable{
-        @Override
-        public void run() {
-            Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
-            Log.d(TAG, String.valueOf(category));
-            activity.setText(category.toString());
-        }
-    }
 
 
 }
