@@ -23,12 +23,10 @@ import com.dead.acctivi_classification.distanceAlgorithm.EuclideanDistance;
 import java.io.BufferedReader;
 
 import java.io.InputStreamReader;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private static final String TAG = "MainActivity";
@@ -37,8 +35,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private HandlerThread handlerThread = new HandlerThread("thread");
     private Handler threadHandler;
 
-    private final int REQUEST_CODE = 101;
-    private static int BUF_SIZE = 48;
     private final ReentrantLock bufferLock = new ReentrantLock();
 
     RunTimeCalculations calculations = new RunTimeCalculations();
@@ -57,9 +53,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor mSensorAccelero;
 
     float avgY,avgZ, varY,varZ,sdY,sdZ;
-
-
-    // TextViews to display current sensor values
     private Button btStart, btStop;
 
     private int K;
@@ -90,21 +83,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (mSensorAccelero == null) {
             activity.setText(sensor_error);
-        }
+        }else{ activity.setText(" Waiting for Data");}
 
         classifier = new Classifier();
         populateList();
         //runClassifier();
-        classifier.addTrainData();
-
-
 
 
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //start();
-
             }
         });
 
@@ -119,8 +108,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         threadHandler = new Handler(handlerThread.getLooper());
         threadHandler.postDelayed(new YRunnable(), 2000);
 
-
-        //Log.d(TAG, String.valueOf(dataY.size()));
     }
 
     @Override
@@ -132,12 +119,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             bufferLock.lock();
             try {
                 if (dataY.size() > 10) {
-                    Log.d(TAG, String.valueOf(dataY));
+                    //Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
                 }
                 dataY.add(event.values[1]);
-                if (dataZ.size() <= 10) {
-                    dataY.remove(0);
+
+                if (dataZ.size() > 10) {
+                    //Log.d(TAG, String.valueOf(dataZ));
+                    dataZ.remove(0);
                 }
                 dataZ.add(event.values[2]);
             }finally {
@@ -179,6 +168,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception exception) {
             exception.printStackTrace();
         }
+        classifier.setDistanceAlgorithm(distanceAlgorithms[0]);
+
+        classifier.setK(11);
+        classifier.setListDataPoint(listDataPoint);
+        classifier.addTrainData();
+        listDataPoint.clear();
+        listDataPoint.addAll(classifier.getListTrainData());
+
     }
 
     void runClassifier() {
@@ -210,20 +207,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private class YRunnable implements Runnable{
         @Override
         public void run() {
-
-            bufferLock.lock();
-            try {
-                avgY = calculations.findAverage(dataY);
-                varY = calculations.findVariance(dataY, avgY);
-                sdY = calculations.findStandardDeviation(varY);
-                avgZ = calculations.findAverage(dataZ);
-                varZ = calculations.findVariance(dataY, avgZ);
-                sdZ = calculations.findStandardDeviation(varZ);
-
-            } finally {
-                bufferLock.unlock();
-            }
-            //threadHandler.post(new Predict()); threadHandler.post(new YRunnable());
+            avgY = calculations.findAverage(dataY);
+            avgZ = calculations.findAverage(dataZ);
+            varY = calculations.findVariance(dataY, avgY);
+            sdY = calculations.findStandardDeviation(varY);
+            varZ = calculations.findVariance(dataY, avgZ);
+            sdZ = calculations.findStandardDeviation(varZ);
 
             runOnUiThread(new Runnable() {
                 @Override
