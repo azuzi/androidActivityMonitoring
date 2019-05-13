@@ -118,13 +118,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
             bufferLock.lock();
             try {
-                if (dataY.size() > 10) {
+                if (dataY.size() > 30) {
                     //Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
                 }
                 dataY.add(event.values[1]);
 
-                if (dataZ.size() > 10) {
+                if (dataZ.size() > 30) {
                     //Log.d(TAG, String.valueOf(dataZ));
                     dataZ.remove(0);
                 }
@@ -218,7 +218,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 @Override
                 public void run() {
                     Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
-                    activity.setText(category.toString());
+                    String cat = category.toString();
+                    activity.setText(cat);
                 }
             });
 
