@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-
+//
         int sensorType = event.sensor.getType();
 
         if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
