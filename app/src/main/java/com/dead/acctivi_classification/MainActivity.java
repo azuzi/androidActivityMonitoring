@@ -206,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         Toast.makeText(getBaseContext(), "Data Recording Started", Toast.LENGTH_LONG).show();
     }
-
+//
     public void stop() {
         Log.d(TAG, "olga::stop");
         super.onStop();
