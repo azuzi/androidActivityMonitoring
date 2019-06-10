@@ -98,8 +98,8 @@ public class Classifier {
     private List<Double> calculateDistances(DataPoint point){
         List<Double> listDistance = new ArrayList<>();
         for (DataPoint dataPoint:listTrainData){
-            double distance = distanceAlgorithm.calculateDistance(point.getMY(), point.getVY(),point.getSDY(),point.getMZ(), point.getVZ(),point.getSDZ(),
-                    dataPoint.getMY(), dataPoint.getVY(),dataPoint.getSDY(),dataPoint.getMZ(), dataPoint.getVZ(),dataPoint.getSDZ());
+            double distance = distanceAlgorithm.calculateDistance(point.getVX, point.getVY(),point.getVZ(),point.getSDX(), point.getSDY(),point.getSDZ(),
+                    dataPoint.getVX(), dataPoint.getVY(),dataPoint.getVZ(),dataPoint.getSDX(), dataPoint.getSDY(),dataPoint.getSDZ());
             listDistance.add(distance);
         }
         return listDistance;
@@ -155,9 +155,9 @@ public class Classifier {
         accuracy /= listTestData.size();
     }
 
-    Category predictNew(double mY, double vY, double sdY, double mZ, double vZ, double sdZ){
+    Category predictNew(double vX, double vY, double vZ, double sdX, double sdY, double sdZ){
 
-        DataPoint dataPoint = new DataPoint(mY,vY,sdY,mZ,vZ,sdZ,Category.values()[4]);
+        DataPoint dataPoint = new DataPoint(vX,vY,vZ,sdX,sdY,sdZ,Category.values()[2]);
         dataPoint.setCategory(Category.TEST);
         Category category = classifyDataPoint(dataPoint);
 

@@ -92,6 +92,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/bundle_manifest" />
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/check_manifest_result" />
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/compatible_screen_manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/dex" />
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/external_libs_dex" />
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/incremental" />
       <excludeFolder url="file://$MODULE_DIR$/../../Acctivi_Classification/app/build/intermediates/incremental-runtime-classes" />

@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //    private final ReentrantLock bufferLock = new ReentrantLock();
 
     RunTimeCalculations calculations = new RunTimeCalculations();
+    private ArrayList<Float> dataX = new ArrayList<Float>();
     private ArrayList<Float> dataY = new ArrayList<Float>();
     private ArrayList<Float> dataZ = new ArrayList<Float>();
 
@@ -52,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager mSensorManager;
     private Sensor mSensorAccelero;
 
-    float avgY,avgZ, varY,varZ,sdY,sdZ;
+    float avgX,avgY,avgZ, varX,varY,varZ,sdX,sdY,sdZ;
     private Button btStart, btStop;
 
     private int K;
@@ -117,6 +118,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorType == Sensor.TYPE_ACCELEROMETER) {
 //            bufferLock.lock();
             try {
+                if (dataX.size() > 30) {
+                    //Log.d(TAG, String.valueOf(dataY));
+                    dataX.remove(0);
+                }
+                dataX.add(event.values[0]);
+
                 if (dataY.size() > 30) {
                     //Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
@@ -153,14 +160,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 String[] point = line.split(",");
-                double mY = Double.parseDouble(point[0]);
+                double vX = Double.parseDouble(point[0]);
                 double vY = Double.parseDouble(point[1]);
-                double sdY = Double.parseDouble(point[2]);
-                double mZ = Double.parseDouble(point[3]);
-                double vZ = Double.parseDouble(point[4]);
+                double vZ = Double.parseDouble(point[2]);
+                double sdX = Double.parseDouble(point[3]);
+                double sdY = Double.parseDouble(point[4]);
                 double sdZ = Double.parseDouble(point[5]);
                 int category = Integer.parseInt(point[6]);
-                DataPoint dataPoint = new DataPoint(mY, vY, sdY, mZ, vZ, sdZ, Category.values()[category]);
+                DataPoint dataPoint = new DataPoint(vX, vY, vZ, sdX, sdY, sdZ, Category.values()[category]);
                 listDataPointOriginal.add(new DataPoint(dataPoint));
                 listDataPoint.add(dataPoint);
             }
@@ -209,17 +216,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void processsData () {
         Log.d(TAG, "olga::processing data");
+        avgX = calculations.findAverage(dataX);
         avgY = calculations.findAverage(dataY);
         avgZ = calculations.findAverage(dataZ);
+
+        varX = calculations.findVariance(dataX, avgX);
         varY = calculations.findVariance(dataY, avgY);
-        sdY = calculations.findStandardDeviation(varY);
         varZ = calculations.findVariance(dataY, avgZ);
+
+        sdX = calculations.findStandardDeviation(varX);
+        sdY = calculations.findStandardDeviation(varY);
         sdZ = calculations.findStandardDeviation(varZ);
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Category category = classifier.predictNew(avgY, varY, sdY, avgZ, varZ, sdZ);
+                Category category = classifier.predictNew(varX, varY,varZ,sdX,sdY,sdZ);
                 String cat = category.toString();
                 activity.setText(cat);
             }
