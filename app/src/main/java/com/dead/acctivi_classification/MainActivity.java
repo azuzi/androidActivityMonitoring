@@ -1,18 +1,18 @@
 package com.dead.acctivi_classification;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,11 +25,18 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private static final String TAG = "MainActivity";
+    private final ParticleFilter particleFilter;
+    private final int NUM_PARTICLES =10000;
+    private final Point[] landmarks = new Point[]{new Point(23,20),new Point(23,120),new Point(60,20),
+            new Point(60,120), new Point(93,20),new Point(93,120),new Point(93,87), new Point(133,87),
+            new Point(133,120),new Point(172,32),new Point(172,87),new Point(172,120),new Point(172,177),
+            new Point(195,32),new Point(195,87),new Point(195,120),new Point(195,177),new Point(229,87),
+            new Point(229,120),new Point(274,87),new Point(274,120),new Point(321,87),new Point(321,120)};
+    final int WORLD_WIDTH = 500, WORLD_HEIGHT = 300;
 
 
 //    private HandlerThread handlerThread = new HandlerThread("thread");
@@ -58,11 +65,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private int K;
     private double spRatio;
+    private DrawParticle drawParticles;
+    private ImageView image;
 
 
     //float avgX, avgY, avgZ, varX, varY, varZ, sdX, sdY, sdZ;
 
+    public MainActivity(){
+        particleFilter = new ParticleFilter(NUM_PARTICLES,landmarks,WORLD_WIDTH,WORLD_HEIGHT);
 
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btStart = (Button) findViewById(R.id.btStart);
         btStop = (Button) findViewById(R.id.btStop);
         activity = (TextView) findViewById(R.id.textViewZ);
+        image = (ImageView)findViewById(R.id.imageView);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -107,6 +120,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //        handlerThread.start();
 //        threadHandler = new Handler(handlerThread.getLooper());
 //        threadHandler.postDelayed(new YRunnable(), 2000);
+
+        drawParticles = new DrawParticle(this);
+        drawParticles.DrawParticleView(image,ParticleFilter.particles);
 
     }
 

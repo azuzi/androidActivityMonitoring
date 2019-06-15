@@ -98,7 +98,7 @@ public class Classifier {
     private List<Double> calculateDistances(DataPoint point){
         List<Double> listDistance = new ArrayList<>();
         for (DataPoint dataPoint:listTrainData){
-            double distance = distanceAlgorithm.calculateDistance(point.getVX, point.getVY(),point.getVZ(),point.getSDX(), point.getSDY(),point.getSDZ(),
+            double distance = distanceAlgorithm.calculateDistance(point.getVX(), point.getVY(),point.getVZ(),point.getSDX(), point.getSDY(),point.getSDZ(),
                     dataPoint.getVX(), dataPoint.getVY(),dataPoint.getVZ(),dataPoint.getSDX(), dataPoint.getSDY(),dataPoint.getSDZ());
             listDistance.add(distance);
         }
