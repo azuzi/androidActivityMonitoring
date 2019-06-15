@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,7 +50,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-    TextView activity;
+    private TextView activity;
+    private ImageView floor_map;
     private SensorManager mSensorManager;
     private Sensor mSensorAccelero;
 
@@ -71,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btStart = (Button) findViewById(R.id.btStart);
         btStop = (Button) findViewById(R.id.btStop);
         activity = (TextView) findViewById(R.id.textViewZ);
+        floor_map = (ImageView) findViewById(R.id.floormap);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -213,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this);
         Toast.makeText(getBaseContext(), "Data Recording Stopped", Toast.LENGTH_LONG).show();
     }
-
+//
     public void processsData () {
         Log.d(TAG, "olga::processing data");
         avgX = calculations.findAverage(dataX);

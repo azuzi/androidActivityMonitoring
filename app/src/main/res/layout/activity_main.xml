@@ -48,7 +48,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/map"
+        android:id="@+id/floormap"
         android:layout_width="374dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
