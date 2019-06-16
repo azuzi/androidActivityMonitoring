@@ -5,6 +5,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,8 +33,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final String TAG = "MainActivity";
 
 
-//    private HandlerThread handlerThread = new HandlerThread("thread");
-//    private Handler threadHandler;
+    private HandlerThread movementThread = new HandlerThread("thread");
+    private Handler threadHandler;
 
 //    private final ReentrantLock bufferLock = new ReentrantLock();
 
@@ -52,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ImageView floor_map;
     private SensorManager mSensorManager;
     private Sensor mSensorAccelero;
+    private Sensor mAccelero;
+    private Sensor magneto;
 
     float avgX,avgY,avgZ, varX,varY,varZ,sdX,sdY,sdZ;
     private Button btStart, btStop;
@@ -60,7 +64,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private double spRatio;
 
 
-    //float avgX, avgY, avgZ, varX, varY, varZ, sdX, sdY, sdZ;
+    private int mAzimuth = 0; // degree
+    float[] gData = new float[3]; // accelerometer
+    float[] mData = new float[3]; // magnetometer
+    float[] rMat = new float[9];
+    float[] iMat = new float[9];
+    float[] orientation = new float[3];
+
+
+    private String peviousState;
+    private String currentAngle;
+    private String PreviusAngle;
+    private static String state;
+    private static int stepCount = 0;
+    private static int walkingFrequency = 1;
+
+
 
 
     @Override
@@ -75,16 +94,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magneto = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         K = 11;
         spRatio = 0.8;
 
         String sensor_error = getResources().getString(R.string.error_no_sensor);
-//        start();
+        start();
 
-        if (mSensorAccelero == null) {
-            activity.setText(sensor_error);
-        }else{ activity.setText(" Waiting for Data");}
+        if (mSensorAccelero == null) {activity.setText(sensor_error);}
+        if (mAccelero == null) {activity.setText(sensor_error);}
+        if (magneto == null) {activity.setText(sensor_error);}
+        else{ activity.setText(" Waiting for Data");}
 
         classifier = new Classifier();
         populateList();
@@ -94,20 +116,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                start();
+                //start();
             }
         });
 
         btStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stop();
+               // stop();
             }
         });
-
-//        handlerThread.start();
-//        threadHandler = new Handler(handlerThread.getLooper());
-//        threadHandler.postDelayed(new YRunnable(), 2000);
+        state = "Idle";
+        movementThread.start();
+        threadHandler = new Handler(movementThread.getLooper());
+        threadHandler.postDelayed(new movementDetector(), 100);
 
     }
 
@@ -115,31 +137,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onSensorChanged(SensorEvent event) {
 //
         int sensorType = event.sensor.getType();
-
+        float[] data;
         if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
-//            bufferLock.lock();
             try {
                 if (dataX.size() > 30) {
-                    //Log.d(TAG, String.valueOf(dataY));
                     dataX.remove(0);
                 }
                 dataX.add(event.values[0]);
 
                 if (dataY.size() > 30) {
-                    //Log.d(TAG, String.valueOf(dataY));
                     dataY.remove(0);
                 }
                 dataY.add(event.values[1]);
 
                 if (dataZ.size() > 30) {
-                    //Log.d(TAG, String.valueOf(dataZ));
                     dataZ.remove(0);
                 }
                 dataZ.add(event.values[2]);
             }finally {
-//                bufferLock.unlock();
             }
             processsData();
+        }
+
+        if (sensorType == Sensor.TYPE_MAGNETIC_FIELD) {
+            mData = event.values.clone();
+        }
+        if (sensorType == Sensor.TYPE_ACCELEROMETER) {
+            gData = event.values.clone();
+        }
+        if ( SensorManager.getRotationMatrix( rMat, iMat, gData, mData ) ) {
+            mAzimuth= (int) ( Math.toDegrees( SensorManager.getOrientation( rMat, orientation )[0] ) + 360 ) % 360;
+            Float aa = Float.valueOf(mAzimuth);
+
         }
     }
 
@@ -151,8 +180,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy(){
         super.onDestroy();
-//        handlerThread.quit();
+        movementThread.quit();
+        stop();
     }
+
 
     private void populateList() {
         try {
@@ -188,7 +219,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     void runClassifier() {
         classifier.reset();
         classifier.setDistanceAlgorithm(distanceAlgorithms[0]);
-
         classifier.setK(11);
         classifier.setSplitRatio(0.8);
         classifier.setListDataPoint(listDataPoint);
@@ -196,7 +226,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         listDataPoint.clear();
         listDataPoint.addAll(classifier.getListTestData());
         listDataPoint.addAll(classifier.getListTrainData());
-
     }
 
     public void start() {
@@ -205,16 +234,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (mSensorAccelero != null) {
             mSensorManager.registerListener(this, mSensorAccelero, SensorManager.SENSOR_DELAY_NORMAL);
         }
+        if (mAccelero != null) {
+            mSensorManager.registerListener(this, mAccelero, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+        if (magneto != null) {
+            mSensorManager.registerListener(this, magneto, SensorManager.SENSOR_DELAY_NORMAL);
+        }
         Toast.makeText(getBaseContext(), "Data Recording Started", Toast.LENGTH_LONG).show();
     }
-//
+
+
+
     public void stop() {
         Log.d(TAG, "olga::stop");
         super.onStop();
         mSensorManager.unregisterListener(this);
         Toast.makeText(getBaseContext(), "Data Recording Stopped", Toast.LENGTH_LONG).show();
     }
-//
+
     public void processsData () {
         Log.d(TAG, "olga::processing data");
         avgX = calculations.findAverage(dataX);
@@ -234,9 +271,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run() {
                 Category category = classifier.predictNew(varX, varY,varZ,sdX,sdY,sdZ);
                 String cat = category.toString();
+                state = cat;
                 activity.setText(cat);
+
+
             }
         });
+    }
+    static long StartTime ;
+    static long StopTime ;
+
+    static class movementDetector implements Runnable{
+        @Override
+        public void run() {
+            if (state == "Idle" ){
+                StartTime = System.nanoTime(); //set sta rt time 0
+            }
+            while (state == "Walk" ){
+                StopTime = System.nanoTime();
+                stepCount =(int)(StopTime - StartTime)/1000000000 * walkingFrequency;
+            }
+
+        }
     }
 
 }
