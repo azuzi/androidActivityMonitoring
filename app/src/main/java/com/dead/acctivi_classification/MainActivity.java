@@ -35,6 +35,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private HandlerThread movementThread = new HandlerThread("thread");
     private Handler threadHandler;
+	
+	 private ParticleFilter particleFilter;
+    private final int NUM_PARTICLES =10000;
+	 private  PointF[] landmarks = new PointF[]{
+            new PointF(2.3f,14.04f),new PointF(2.3f,9.04f),new PointF(5.89f,14.04f),new PointF(5.89f,9.04f),
+            new PointF(9.09f,14.04f),
+            new PointF(9.09f,9.04f),new PointF(9.09f,10.69f),new PointF(13.02f,10.69f),
+            new PointF(13.02f,9.04f),
+            new PointF(16.84f,10.69f),new PointF(16.84f,9.04f),new PointF(16.84f,13.44f),new PointF(19.14f,9.04f),
+            new PointF(19.14f,13.44f),
+            new PointF(19.14f,10.69f),new PointF(16.84f,6.18f),new PointF(19.14f,6.18f),new PointF(22.45f,10.69f),
+            new PointF(22.45f,9.04f),
+            new PointF(26.88f,10.69f),new PointF(26.88f,9.04f),new PointF(31.43f,10.69f),new PointF(31.43f,9.04f)
+    };
+    private DrawParticle drawLandmarks;
+
+    final int WORLD_WIDTH = 32;
+    final int WORLD_HEIGHT = 10;
 
 //    private final ReentrantLock bufferLock = new ReentrantLock();
 
@@ -62,6 +80,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private int K;
     private double spRatio;
+	
+	 private DrawParticle drawParticles;
+    private ImageView image;
 
 
     private int mAzimuth = 0; // degree
@@ -90,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btStart = (Button) findViewById(R.id.btStart);
         btStop = (Button) findViewById(R.id.btStop);
         activity = (TextView) findViewById(R.id.textViewZ);
-        floor_map = (ImageView) findViewById(R.id.floormap);
+		image = (ImageView)findViewById(R.id.imageView);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensorAccelero = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -130,6 +151,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         movementThread.start();
         threadHandler = new Handler(movementThread.getLooper());
         threadHandler.postDelayed(new movementDetector(), 100);
+		
+		 particleFilter = new ParticleFilter(NUM_PARTICLES,landmarks,WORLD_WIDTH,WORLD_HEIGHT);
+
+        drawParticles = new DrawParticle(this);
+        drawParticles.DrawParticleView(image,ParticleFilter.particles,landmarks);
 
     }
 

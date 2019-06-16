@@ -48,7 +48,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
-        android:id="@+id/floormap"
+        android:id="@+id/imageView"
         android:layout_width="374dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -57,7 +57,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewZ"
-        app:srcCompat="@drawable/Floor" />
+        app:srcCompat="@drawable/capture" />
 
 
 </android.support.constraint.ConstraintLayout>
